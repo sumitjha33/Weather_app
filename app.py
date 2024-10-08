@@ -14,13 +14,12 @@ CORS(app)
 def index():
     return render_template("index.html")
 
-
 @app.route("/get_weather", methods=["POST"])
 def get_weather():
     city = request.form.get("city")
     
     if not city:
-        return redirect(url_for('index'))
+        return render_template("index.html", error="City cannot be empty.")
 
     try:
         # Geolocation
@@ -28,7 +27,7 @@ def get_weather():
         location = geolocator.geocode(city)
         
         if not location:
-            return redirect(url_for('index'))
+            return render_template("index.html", error="City not found. Please enter a valid city.")
 
         obj = TimezoneFinder()
         result = obj.timezone_at(lng=location.longitude, lat=location.latitude)
@@ -42,8 +41,11 @@ def get_weather():
         url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
         response = requests.get(url).json()
         
+        # Debugging output
+        print(f"API Response: {response}")  # Print the response for debugging
+        
         if response.get('cod') != 200:
-            return redirect(url_for('index'))
+            return render_template("index.html", error=f"Error fetching weather data: {response.get('message')}")
 
         condition = response['weather'][0]['main']
         description = response['weather'][0]['description']
@@ -63,8 +65,8 @@ def get_weather():
                 current_time=current_time)
 
     except Exception as e:
-        print(f"Error occurred: {e}")
-        return redirect(url_for('index'))
+        print(f"Error occurred: {e}")  # Print the error for debugging
+        return render_template("index.html", error="An unexpected error occurred.")
 
 if __name__ == "__main__":
     app.run(debug=True)
